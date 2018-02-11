@@ -1,3 +1,6 @@
+var reader;
+var progress;
+
 function onLoad()
 {
     document.getElementById('files').addEventListener('change', onUpload, false);
@@ -7,6 +10,7 @@ function onUpload(evt)
 {
     var myVideo = document.getElementById("video1"); 
     var fileToUpload = evt.target.files[0];
+    
     var reader = new FileReader();
 
     var senddata = new Object();
@@ -18,10 +22,14 @@ function onUpload(evt)
 
     // Wenn der Dateiinhalt ausgelesen wurde...
     reader.onload = function(theFileData) {
-      senddata.fileData = theFileData.target.result; // Ergebnis vom FileReader auslesen
+        var blob = theFileData.target.result; // Ergebnis vom FileReader auslesen
 
-      alert(senddata.name);
-    }
+        var source = document.createElement('source');
+        source.src = blob;
+        source.type = "video/mp4";
+
+        myVideo.appendChild(source);
+    };
 
     // Die Datei einlesen und in eine Data-URL konvertieren
     reader.readAsDataURL(fileToUpload);
