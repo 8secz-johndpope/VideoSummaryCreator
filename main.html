@@ -3,17 +3,30 @@
     <head>
         <title>Video Summary Creator</title>
         <script language="javascript" type="text/javascript" src="script.js"></script>
-        <meta charset="utf-8"> 
+		<link rel="stylesheet" type="text/css" href="style.css">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" charset="UTF-8">
     </head>
-    <body onload="onLoad()">
-		<div style="background: #64c8ff">
-			<H1 style="color: white" align="center">Video Summary Creator</H1>
+    <body>
+			<div class="center">
+				<div id="title">
+					<h1>Video Summary Creator</h1>
+				</div>
+				<div>
+					<video id="video1" height="360" width="640" controls="true"/>
+				</div>
+				<nav>
+					<input type="file" id="files" name="files[]" />
+				</nav>
+				<div class="center_element">
+					<canvas id="canvas">
+					</canvas>
+				</div>
+			
+		<div class="center_element">
+			<input id="time_slider" disabled="true" type="range" min="0" max="100" value="0">
 		</div>
-        <div>
-            <video id="video1" height="360" width="640" controls="true"/>
-        </div>
-        <nav>
-            <input type="file" id="files" name="files[]" />
-        </nav>
+		<div id="container">
+		</div>
+		</div>
     </body>
 </html>
