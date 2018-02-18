@@ -29,10 +29,32 @@
 		}
 	}
 	
+	// Returns a textual representation of a frame.
+	Frame.prototype.asText = function() {
+		var h = Math.floor(this.second / 3600);
+		var m = Math.floor(this.second % 3600 / 60);
+		var s = Math.floor(this.second % 3600 % 60);
+
+		var hms = h > 9 ? "" + h + ":" : "0" + h + ":";
+		hms += m > 9 ? "" + m + ":" : "0" + m + ":";
+		hms += s > 9 ? "" + s : "0" + s;
+				
+		return hms;
+	};
+	
 	// Represents a segment that contains two frames
 	function Segment(startFrame, endFrame) {
+		this.id = -1;
 		this.startFrame = startFrame;
 		this.endFrame = endFrame;
+		this.description = '';
+	};
+	
+	// Returns a textual representation of a segment.
+	Segment.prototype.asText = function() {
+		return '-ss ' + this.startFrame.asText() + 
+			   ' -to ' + this.endFrame.asText() + 
+			   ' -txt ' + this.description + ';';
 	};
 	
 	/*
@@ -44,6 +66,9 @@
 	var reader;
 	var progress;
 	var video;
+	
+	// used to identify segments -> every segment is assigned such an id
+	var segment_id = 0;
 	
 	// used for storing selected frames temporarily
 	var saved_frames = [];
@@ -78,6 +103,49 @@
 		canvas.addEventListener("click", saveFrame, false);
 		time_slider.addEventListener("change", updateFrame, false);
 		time_slider.addEventListener("input", updateFrame, false);
+		
+		document.getElementById('previousFrame').addEventListener('click', 
+		function() {
+			if (actual_frame === null) {
+				return;
+			}
+			if (isUndefined(actual_frame)) {
+				return;
+			}
+			if (actual_frame.second <= 0) {
+				return;
+			}
+			actual_frame.second--;
+			drawFrame(actual_frame);
+		},
+		false);
+		
+		document.getElementById('nextFrame').addEventListener('click', 
+		function() {
+			if (actual_frame === null) {
+				return;
+			}
+			if (video === null) {
+				return;
+			}
+			if (isUndefined(actual_frame) || isUndefined(video) || isUndefined(video.duration)) {
+				return;
+			}
+			if (actual_frame.second >= video.duration) {
+				return;
+			}
+			actual_frame.second++;
+			drawFrame(actual_frame);
+		},
+		false);
+		
+		document.getElementById('submit').addEventListener('click', 
+		function() {
+			updateDescriptions();
+			var result = combineSegments();
+			// send result to server!
+		},
+		false);
 		
 		document.getElementById('files').addEventListener('change', 
 		function(evt)
@@ -152,12 +220,12 @@
 	 *******************************************************************
 	 */
 	
-	// initiates drawing of a certain frame by setting associated time value of the video
+	// Initiates drawing of a certain frame by setting associated time value of the video
 	function drawFrame(frame) {
 			video.currentTime = (frame.second > video.duration ? video.duration : frame.second);
 	};
 	
-	// draws a frame of the current video according to its time in seconds into its canvas. 
+	// Draws a frame of the current video according to its time in seconds into its canvas. 
 	// If frame.reset is true, the surface of the canvas is being cleared.
 	function drawFrameOnCanvas(frame) {
 	
@@ -180,24 +248,32 @@
                 
     };
 	
-	// takes percentage value of the time slider, converts it into corresponding 
+	// Takes percentage value of the time slider, converts it into corresponding 
 	// time value of the video and initiates drawing of the respective frame.
 	function updateFrame() {
 		var value = time_slider.value;
 		
-		if (typeof video == 'undefined') {
-				return;
-			}
-			if (typeof video.duration == 'undefined') {
-				return;
-			}
-			if (typeof video.duration !== video.duration) {
-				// return;
-			}
+		if (isNull(video)) {
+			return;
+		}
+		if (isUndefined(video)) {
+			return;
+		}
+		if (isUndefined(video.duration)) {
+			return;
+		}
 		
 		var second = Math.floor(value * video.duration / 100);
 		actual_frame = new Frame(second, canvas, false, null);
 		drawFrame(actual_frame);
+	}
+	
+	function isUndefined(object) {
+		return object === undefined;
+	}
+	
+	function isNull(object) {
+		return object === null;
 	}
 	 
 	 // "Grabs" the visible frame and adds it to "saved_frames" collection. 
@@ -205,6 +281,11 @@
 	 // and saved. After creation of a segment, its frames are being removed 
 	 // from "saved_frames" collection.
 	 function saveFrame() {
+		
+		if(isUndefined(actual_frame)) {
+			return;
+		}
+		
 		var img = new Image();
 		img.src = actual_frame.canvas.toDataURL();
 		var frame = new Frame(actual_frame.second, null, false, img);
@@ -212,30 +293,13 @@
 		if (saved_frames.length > 0 && saved_frames.length % 2 == 0) {
 			var frame1 = saved_frames.shift();
 			var frame2 = saved_frames.shift();
-			var segment = new Segment(frame1.older(frame2), frame1.younger(frame2));
+			var first = frame1.older(frame2);
+			var second = frame1.younger(frame2);
+			var segment = new Segment(first, second);
 			segments.push(segment);
-			addSegment(segment);
+			segment.id = segment_id++;
+			repaintSegments();
 		}
-	}
-	
-	function upArrowClicked(segment) {
-		var index1 = segments.indexOf(segment);
-		if (index1 == 0) {
-			return;
-		}
-		var index2 = index1 - 1;
-		swapSegments(index1, index2);
-		// refresh();
-	}
-	
-	function downArrowClicked(segment) {
-		var index1 = segments.indexOf(segment);
-		if (index1 == segments.length - 1) {
-			return;
-		}
-		var index2 = index1 + 1;
-		swapSegments(index1, index2);
-		// refresh();
 	}
 	
 	/*
@@ -244,54 +308,175 @@
 	 *******************************************************************
 	 */
 	 
-	 // creates a visual element of a given segment and visualizes it.
-	function addSegment(segment) {
-			
-				// create canvas element, save timecode and frame
-				var item = document.createElement('canvas');
-				item.width = 500;
-				item.height = 100;
-				item.setAttribute('data-start', segment.startFrame.second);
-				item.setAttribute('data-end', segment.endFrame.second);
-				// item.addEventListener('click', function() {jumpToPosition(this)}, false);
-				
-				// draw current frame of the video
-				var start = segment.startFrame.second;
-				var end = segment.endFrame.second;
-				var context = item.getContext("2d");
-				context.drawImage(segment.startFrame.image, 10, 10, 50, 50);
-				context.drawImage(segment.endFrame.image, 70, 10, 50, 50);
-				
-				// draw timecode as text
-				context.font = "10px Arial";
-				context.fillStyle = 'Black';
-				context.fillText(getTime(start), 10, 70);
-				context.fillText(getTime(end), 70, 70);
-				
-				var div = document.createElement('div');
-				div.appendChild(item);
-				
-				// add the new canvas to the list of canvas objects
-				container.appendChild(div);
+	// Returns the segment having id equal to parameter 
+	// id or null, if no such segment exists.
+	function getSegmentById(id) {
+		var segment = null;
+		for (var j = 0; j < segments.length; j++) {
+			if (segments[j].id == id) {
+				segment = segments[j];
+				break;
+			}
+		}
+		return segment;
+	}
+	
+	// Repaints the list of segments in order 
+	// to reflect visual changes of the segment(s) such as 
+	// changes in order or deletions.
+	function repaintSegments() {
+		updateDescriptions();
+		for (var i = 0; i < segments.length; i++) {
+			removeSegment(segments[i]);
+		}
+		for (var i = 0; i < segments.length; i++) {
+			addSegment(segments[i]);
+		}
 	}
 	 
+	 // Visualizes a given segment.
+	function addSegment(segment) {
+			
+		// create canvas element used to visualize the frames of 
+		// the given segment + its timecodes
+		var item = document.createElement('canvas');
+		item.width = 1000;
+		item.height = 200;
+		
+		// input field for description of a segment
+		var input = document.createElement('input');
+		input.type = 'text';
+		input.placeholder = 'description';
+		input.className = 'description';
+		input.value = segment.description;
+		input.id = '' + segment.id;
+		input.width = 500;
+		
+		// draw segment frames of the video
+		var context = item.getContext("2d");
+		context.drawImage(segment.startFrame.image, 10, 10, 150, 150);
+		context.drawImage(segment.endFrame.image, 170, 10, 150, 150);
+		
+		// draw timecode as text
+		context.font = "20px Arial";
+		context.fillStyle = 'Black';
+		context.fillText(segment.startFrame.asText() + ' - ' + segment.endFrame.asText(), 10, 190);
+		
+		var div = document.createElement('div');
+		div.className = 'element';
+		div.setAttribute('data-start', segment.startFrame.second);
+		div.setAttribute('data-end', segment.endFrame.second);
+		div.id = 'div' + segment.id;
+		
+		// logic for button showing the up arrow
+		var up_arrow = document.createElement('button');
+		up_arrow.type = 'button';
+		up_arrow.innerHTML = '&uarr;'
+		up_arrow.setAttribute('data-id', segment.id);
+		var index = segments.indexOf(segment);
+		up_arrow.disabled = index == 0;
+		up_arrow.addEventListener('click', 
+		function() {
+			var segment_id = this.getAttribute('data-id');
+			var se = getSegmentById(segment_id);
+			var index_se = segments.indexOf(se);
+			if (index_se <= 0) {
+				return;
+			}
+			swapSegments(index_se, index_se - 1);
+			repaintSegments();
+		},
+		false);
+		
+		// logic for button showing the down arrow
+		var down_arrow = document.createElement('button');
+		down_arrow.type = 'button';
+		down_arrow.innerHTML = '&darr;'
+		down_arrow.setAttribute('data-id', segment.id);
+		down_arrow.disabled = index == segments.length - 1;
+		down_arrow.addEventListener('click', 
+		function() {
+			var segment_id = this.getAttribute('data-id');
+			var se = getSegmentById(segment_id);
+			var index_se = segments.indexOf(se);
+			if (index_se >= segments.length - 1) {
+				return;
+			}
+			swapSegments(index_se, index_se + 1);
+			repaintSegments();
+		},
+		false);
+		
+		// logic for remove button -> removes a segment
+		var remove = document.createElement('button');
+		remove.type = 'button';
+		remove.innerHTML = '-';
+		remove.setAttribute('data-id', segment.id);
+		remove.style.color = 'red',
+		remove.addEventListener('click', 
+		function() {
+			var segment_id = this.getAttribute('data-id');
+			var se = getSegmentById(segment_id);
+			var index_se = segments.indexOf(se);
+			// Find and remove item from an array
+			if(index_se >= 0 && index_se < segments.length) {
+				segments.splice(index_se, 1);
+				removeSegment(se);
+				repaintSegments();
+			}
+		},
+		false);
+		
+		div.appendChild(item);
+		div.appendChild(input);
+		div.appendChild(up_arrow);
+		div.appendChild(down_arrow);
+		div.appendChild(remove);
+		
+		// add the new segment div to the list of div objects
+		container.appendChild(div);
+	}
+	
 	function swapSegments(index1, index2) {
 		var dummy = segments[index1];
 		segments[index1] = segments[index2];
 		segments[index2] = dummy;
 	}
 	
-	// converts a time value provided in seconds into 
-	// more readable hh:mm:ss.
-	function getTime(seconds) {
-				var h = Math.floor(seconds / 3600);
-                var m = Math.floor(seconds % 3600 / 60);
-                var s = Math.floor(seconds % 3600 % 60);
-
-                var hms = h > 9 ? "" + h + ":" : "0" + h + ":";
-                hms += m > 9 ? "" + m + ":" : "0" + m + ":";
-                hms += s > 9 ? "" + s : "0" + s;
-				
-				return hms;
-				
-	};
+	// Removes a segment from the DOM tree if possible.
+	function removeSegment(segment) {
+		var div = document.getElementById('div' + segment.id);
+		if (isNull(div)) {
+			return;
+		}
+		div.remove();
+	}
+	
+	// Used to store current values of description fields 
+	// into its associated segment objects. 
+	// This is necessary in order to connect view and object.
+	function updateDescriptions() {
+		var inputs = document.getElementsByTagName('input');
+		for (var i = 0; i < inputs.length; i++) {
+			var input = inputs[i];
+			if(input.type.toLowerCase() == 'text') {
+				var id = input.id;
+				var segment = getSegmentById(id);
+				if (isNull(segment)) {
+					continue;
+				}
+				segment.description = input.value;
+			}
+		}
+	}
+	
+	// Combines all segments to a string representation that 
+	// can be send to the server to signal the creation 
+	// of the video.
+	function combineSegments() {
+		var result = '';
+		for (var i = 0; i < segments.length; i++) {
+			result += segments[i].asText();
+		}
+		return result;
+	}

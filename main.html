@@ -15,16 +15,26 @@
 					<video id="video1" height="360" width="640" controls="true"/>
 				</div>
 				<nav>
+					<!-- used to upload a video -->
 					<input type="file" id="files" name="files[]" />
+					<!-- sends all segments to the server -->
+					<button type="button" id="submit">Create summary!</button>
 				</nav>
+				<!-- canvas to visualize current frame -->
 				<div class="center_element">
 					<canvas id="canvas">
 					</canvas>
 				</div>
 			
-		<div class="center_element">
+		<div class="center_controls">
+			<!-- allows to set current frame of the video -->
 			<input id="time_slider" disabled="true" type="range" min="0" max="100" value="0">
+			<!-- switch to frame corresponding to current time - 1 s -->
+			<button type="button" id="previousFrame" class="nav_button">&larr;</button>
+			<!-- switch to frame corresponding to current time + 1 s -->
+			<button type="button" id="nextFrame" class="nav_button">&rarr;</button>
 		</div>
+		<!-- serves as container for segments created by js -->
 		<div id="container">
 		</div>
 		</div>

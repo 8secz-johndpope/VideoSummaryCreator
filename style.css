@@ -20,7 +20,20 @@ h1 {
 .center_element {
     margin: auto;
     width: 100%;
+	border-left: 2px solid #64c8ff;
+	border-top: 2px solid #64c8ff;
+	border-right: 2px solid #64c8ff;
+}
+
+.center_controls {
+    margin: auto;
+    width: 100%;
 	border: 2px solid #64c8ff;
+}
+
+.nav_button {
+	width=5%;
+	margin-bottom: 5px;
 }
 
 canvas#canvas {
@@ -33,5 +46,14 @@ canvas#canvas {
 canvas {
 	margin: auto;
     width: 100%;
-	border-bottom: 1px solid #64c8ff;
+}
+
+div.element {
+	margin: auto;
+    width: 100%;
+	border-bottom: 2px solid #64c8ff;
+}
+
+input.description {
+	margin: 10px;
 }
