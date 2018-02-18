@@ -85,6 +85,10 @@
 	var canvas;
 	// range slider used for switching between frames
 	var time_slider;
+	// switch to frame corresponding to current time - 1 s
+	var previous_frame;
+	// switch to frame corresponding to current time + 1 s
+	var next_frame;
 	// used to collect and show segments
 	var container;
 	
@@ -102,6 +106,9 @@
 		video = document.getElementById("video1");
 		canvas = document.getElementById("canvas");
 		time_slider = document.getElementById("time_slider");
+		previous_frame = document.getElementById("previousFrame");
+		next_frame = document.getElementById("nextFrame");
+		container = document.getElementById("container");
 		container = document.getElementById("container");
 		
         //initialize events
@@ -112,7 +119,7 @@
 		document.getElementById('files').addEventListener('change', FileChosen);
 		document.getElementById('UploadButton').addEventListener('click', StartUpload); 
 		
-		document.getElementById('previousFrame').addEventListener('click', 
+		previous_frame.addEventListener('click', 
 		function() {
 			if (actual_frame === null) {
 				return;
@@ -123,12 +130,16 @@
 			if (actual_frame.second <= 0) {
 				return;
 			}
-			actual_frame.second--;
-			drawFrame(actual_frame);
+			var value = Math.floor((actual_frame.second - 1) * 100 / video.duration);
+			if (value >= 0 && value <= 100) {
+				actual_frame.second--;
+				time_slider.value = value;
+				drawFrame(actual_frame);
+			}
 		},
 		false);
 		
-		document.getElementById('nextFrame').addEventListener('click', 
+		next_frame.addEventListener('click', 
 		function() {
 			if (actual_frame === null) {
 				return;
@@ -142,8 +153,12 @@
 			if (actual_frame.second >= video.duration) {
 				return;
 			}
-			actual_frame.second++;
-			drawFrame(actual_frame);
+			var value = Math.floor((actual_frame.second + 1) * 100 / video.duration);
+			if (value >= 0 && value <= 100) {
+				actual_frame.second++;
+				time_slider.value = value;
+				drawFrame(actual_frame);
+			}
 		},
 		false);
 		
@@ -235,6 +250,8 @@
 		video.addEventListener("loadedmetadata", 
 		function() {
 			time_slider.disabled = false;
+			previous_frame.disabled = false;
+			next_frame.disabled = false;
 		},
 		false);
 		
