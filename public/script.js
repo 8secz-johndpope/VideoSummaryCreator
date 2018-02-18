@@ -11,7 +11,7 @@
 		this.canvas = canvas;
 		this.reset = reset;
 		this.image = image;
-	};
+	}
 	
 	Frame.prototype.older = function(frame) {
 		if (this.second <= frame.second) {
@@ -40,7 +40,7 @@
 		hms += s > 9 ? "" + s : "0" + s;
 				
 		return hms;
-	};
+	}
 	
 	// Represents a segment that contains two frames
 	function Segment(startFrame, endFrame) {
@@ -48,14 +48,14 @@
 		this.startFrame = startFrame;
 		this.endFrame = endFrame;
 		this.description = '';
-	};
+	}
 	
 	// Returns a textual representation of a segment.
 	Segment.prototype.asText = function() {
 		return '-ss ' + this.startFrame.asText() + 
 			   ' -to ' + this.endFrame.asText() + 
 			   ' -txt ' + this.description + ';';
-	};
+	}
 	
 	/*
 	 *******************************************************************
@@ -64,8 +64,12 @@
 	 */
 	
 	var reader;
-	var progress;
 	var video;
+
+    var SelectedFile;
+    var socket = io.connect('http://localhost:8080');
+    var Path = "http://localhost/";
+
 	
 	// used to identify segments -> every segment is assigned such an id
 	var segment_id = 0;
@@ -91,7 +95,8 @@
 	 */
 	
 	// Initializes main variables and functions
-	function init() {
+	function init() 
+    {
 		
 		// initialize variables
 		video = document.getElementById("video1");
@@ -99,10 +104,13 @@
 		time_slider = document.getElementById("time_slider");
 		container = document.getElementById("container");
 		
-		// initialize events
+        //initialize events
 		canvas.addEventListener("click", saveFrame, false);
 		time_slider.addEventListener("change", updateFrame, false);
 		time_slider.addEventListener("input", updateFrame, false);
+		
+		document.getElementById('files').addEventListener('change', FileChosen);
+		document.getElementById('UploadButton').addEventListener('click', StartUpload); 
 		
 		document.getElementById('previousFrame').addEventListener('click', 
 		function() {
@@ -147,42 +155,64 @@
 		},
 		false);
 		
-		document.getElementById('files').addEventListener('change', 
-		function(evt)
-		{
-		var fileToUpload = evt.target.files[0];
-    
-		var reader = new FileReader();
-
-		var senddata = new Object();
-		// Auslesen der Datei-Metadaten
-		senddata.name = fileToUpload.name;
-		senddata.date = fileToUpload.lastModified;
-		senddata.size = fileToUpload.size;
-		senddata.type = fileToUpload.type;
-
-		// Wenn der Dateiinhalt ausgelesen wurde...
-		reader.onload = function(theFileData) {
-			var blob = theFileData.target.result; // Ergebnis vom FileReader auslesen
-
-			var source = document.createElement('source');
-			source.src = blob;
-			source.type = "video/mp4";
-
-			video.appendChild(source);
-			
-		};
-
-		// Die Datei einlesen und in eine Data-URL konvertieren
-		reader.readAsDataURL(fileToUpload);
-	}
-		, false);
-		
 		// initialize player
 		initPlayer();
-		
-	};
 	
+	}
+
+    function FileChosen(evnt) 
+    {
+        SelectedFile = evnt.target.files[0];
+    }
+
+    function StartUpload()
+    {
+        if(document.getElementById('files').value != "")
+        {
+            reader = new FileReader();
+            var Name = SelectedFile.name;
+            var Content = "<span id='NameArea'>Uploading " + SelectedFile.name + "</span>";
+            Content += '<div id="ProgressContainer"><div id="ProgressBar"></div></div><span id="percent">0%</span>';
+            Content += "<span id='Uploaded'> - <span id='MB'>0</span>/" + Math.round(SelectedFile.size / 1048576) + "MB</span>";
+            document.getElementById('UploadArea').innerHTML = Content;
+            reader.onload = function(evnt){
+                socket.emit('Upload', { 'Name' : SelectedFile.name, Data : evnt.target.result });
+            }
+            socket.emit('Start', { 'Name' : SelectedFile.name, 'Size' : SelectedFile.size });
+        }
+        else
+        {
+            alert("Please Select A File");
+        }
+    }
+
+    socket.on('MoreData', function (data){
+        UpdateBar(data['Percent']);
+        var Place = data['Place'] * 524288; //The Next Blocks Starting Position
+        var NewFile; //The Variable that will hold the new Block of Data
+        NewFile = SelectedFile.slice(Place, Place + Math.min(524288, (SelectedFile.size-Place)));
+        reader.readAsBinaryString(NewFile);
+    });
+ 
+    function UpdateBar(percent){
+        document.getElementById('ProgressBar').style.width = percent + '%';
+        document.getElementById('percent').innerHTML = (Math.round(percent*100)/100) + '%';
+        var MBDone = Math.round(((percent/100.0) * SelectedFile.size) / 1048576);
+        document.getElementById('MB').innerHTML = MBDone;
+    }
+ 
+    socket.on('Done', function (data){
+        var Content = "Video Successfully Uploaded!"
+        Content += "<button  type='button' name='Upload' value='' id='Restart' class='Button'>Upload Another</button>";
+        document.getElementById('UploadArea').innerHTML = Content;
+        document.getElementById('Restart').addEventListener('click', Refresh);
+        video.src = SelectedFile.name;
+    });
+
+    function Refresh(){
+        location.reload(true);
+    }
+
 	// Adds additional behavior such as error handling, meta data loading and seeking functions to the video element.
 	function initPlayer() {
 		
@@ -222,8 +252,8 @@
 	
 	// Initiates drawing of a certain frame by setting associated time value of the video
 	function drawFrame(frame) {
-			video.currentTime = (frame.second > video.duration ? video.duration : frame.second);
-	};
+		video.currentTime = (frame.second > video.duration ? video.duration : frame.second);
+	}
 	
 	// Draws a frame of the current video according to its time in seconds into its canvas. 
 	// If frame.reset is true, the surface of the canvas is being cleared.
@@ -246,7 +276,7 @@
 		
 		context.drawImage(video, 0, 0, canvas.width, canvas.height);
                 
-    };
+    }
 	
 	// Takes percentage value of the time slider, converts it into corresponding 
 	// time value of the video and initiates drawing of the respective frame.
@@ -275,12 +305,12 @@
 	function isNull(object) {
 		return object === null;
 	}
-	 
-	 // "Grabs" the visible frame and adds it to "saved_frames" collection. 
-	 // If "saved_frames" contains at least two frames, a new segment is created 
-	 // and saved. After creation of a segment, its frames are being removed 
-	 // from "saved_frames" collection.
-	 function saveFrame() {
+
+    // "Grabs" the visible frame and adds it to "saved_frames" collection. 
+    // If "saved_frames" contains at least two frames, a new segment is created 
+    // and saved. After creation of a segment, its frames are being removed 
+    // from "saved_frames" collection.
+    function saveFrame() {
 		
 		if(isUndefined(actual_frame)) {
 			return;
@@ -436,7 +466,7 @@
 		// add the new segment div to the list of div objects
 		container.appendChild(div);
 	}
-	
+
 	function swapSegments(index1, index2) {
 		var dummy = segments[index1];
 		segments[index1] = segments[index2];
@@ -480,3 +510,4 @@
 		}
 		return result;
 	}
+	

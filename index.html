@@ -2,8 +2,9 @@
 <html>
     <head>
         <title>Video Summary Creator</title>
-        <script language="javascript" type="text/javascript" src="script.js"></script>
-		<link rel="stylesheet" type="text/css" href="style.css">
+        <script src="/socket.io/socket.io.js"></script>
+        <script language="javascript" type="text/javascript" src="/script.js"></script>
+		<link rel="stylesheet" type="text/css" href="/style.css">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" charset="UTF-8">
     </head>
     <body>
@@ -14,9 +15,10 @@
 				<div>
 					<video id="video1" height="360" width="640" controls="true"/>
 				</div>
-				<nav>
+				<nav id="UploadArea">
 					<!-- used to upload a video -->
 					<input type="file" id="files" name="files[]" />
+                    <button  type='button' id='UploadButton' class='Button'>Upload</button>
 					<!-- sends all segments to the server -->
 					<button type="button" id="submit">Create summary!</button>
 				</nav>
