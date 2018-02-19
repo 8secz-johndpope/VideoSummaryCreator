@@ -1,4 +1,3 @@
-//var string = "-ss 00:00:10 -to 00:00:20 -txt kurze beschreibung segment 1;-ss 00:01:15 -to 00:01:20 -txt kurze beschreibung segment 2;-ss 00:05:30 -to 00:05:40 -txt kurze beschreibung segment 3;-ss 00:08:30 -to 00:08:40 -txt kurze beschreibung segment 4;";
 	/*
 	 *******************************************************************
 	 * Objects
@@ -169,6 +168,7 @@
                         console.log(result);
 			// send result to server!
  			socket.emit('ffmpeg', { 'Name' : SelectedFile.name, 'Data' : result });
+                        //segments = [];
 		},
 		false);
 		
@@ -196,7 +196,6 @@
                 socket.emit('Upload', { 'Name' : SelectedFile.name, Data : evnt.target.result });
             }
             socket.emit('Start', { 'Name' : SelectedFile.name, 'Size' : SelectedFile.size });
-	    //socket.emit('ffmpeg', { 'Name' : SelectedFile.name, 'Data' : string });
         }
         else
         {

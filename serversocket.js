@@ -64,7 +64,7 @@ function Segmentation(Merge){
 
     for (var i in ssAll) {
 
-	var proc = ffmpeg(inputFile)
+	var proc = ffmpeg('Video/'+inputFile)
 	    .addOption(ssAll[i])
 	    .addOption(toAll[i])
 	    .complexFilter([
