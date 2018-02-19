@@ -19,8 +19,7 @@
 					<!-- used to upload a video -->
 					<input type="file" id="files" name="files[]" />
                     <button  type='button' id='UploadButton' class='Button'>Upload</button>
-					<!-- sends all segments to the server -->
-					<button type="button" id="submit">Create summary!</button>
+					
 				</nav>
 				<!-- canvas to visualize current frame -->
 				<div class="center_element">
@@ -35,6 +34,8 @@
 			<button type="button" disabled="true" id="previousFrame" class="nav_button">&larr;</button>
 			<!-- switch to frame corresponding to current time + 1 s -->
 			<button type="button" disabled="true" id="nextFrame" class="nav_button">&rarr;</button>
+			<!-- sends all segments to the server -->
+			<button type="button" id="submit">Create summary!</button>
 		</div>
 		<!-- serves as container for segments created by js -->
 		<div id="container">
