@@ -67,7 +67,7 @@
 
     var SelectedFile;
     var socket = io.connect('http://localhost:8080');
-    var Path = "http://localhost/";
+    var Path = "http://localhost:8080/VideoSummary.mp4";
 
 	
 	// used to identify segments -> every segment is assigned such an id
@@ -228,6 +228,22 @@
         document.getElementById('UploadArea').innerHTML = Content;
         document.getElementById('Restart').addEventListener('click', Refresh);
         video.src = SelectedFile.name;
+    });
+
+    socket.on('DownloadSummaryVideo', function (data){
+	console.log(Path);
+        var win = window.open(Path, '_blank');
+ 	win.focus();
+ 	var element = document.createElement('a');
+    	element.setAttribute('href', Path);
+    	element.setAttribute('download', "file.mp4");
+
+    	element.setAttribute('target', '_blank');
+   	 element.style.display = 'none';
+   	 document.body.appendChild(element);
+
+    	element.click();
+    	document.body.removeChild(element);
     });
 
     function Refresh(){

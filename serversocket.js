@@ -1,6 +1,6 @@
 var ffmpeg = require('fluent-ffmpeg');
 
-var outFile = "./VideoSummary.mp4";
+var outFile = 'public/VideoSummary.mp4';
 var Files = {};
 var inputFile;
 var express = require('express');
@@ -37,82 +37,7 @@ var toAll = [];
 var txtAll = [];
 var segFiles = []
 
-function PrepareString(Segmentation, Merge, string){
 
-    var seg_cnt = 0;
-    while(string.length != 0){
-
-        segFiles.push("Video/segment" + seg_cnt + ".mp4"); 
-	ssAll.push(string.substring(0, string.indexOf('-to') - 1 ));
-	toAll.push(string.substring(string.indexOf('-to'), string.indexOf('-txt') -1 ));
-	txtAll.push(string.substring(string.indexOf('-txt') + 5, string.indexOf(';') || string.length ));
-	
-	var remove_string = ssAll[seg_cnt] + ' ' + toAll[seg_cnt] + ' ' + '-txt ' + txtAll[seg_cnt] + ';'
-	string = string.replace(remove_string,'');
-	seg_cnt += 1;
-	
-    }
-   Segmentation(Merge);
-}
-
-
-function Segmentation(Merge){
-    console.log(segFiles);
-    console.log(ssAll);
-    console.log(toAll);
-    console.log(txtAll);
-
-    for (var i in ssAll) {
-
-	var proc = ffmpeg('Video/'+inputFile)
-	    .addOption(ssAll[i])
-	    .addOption(toAll[i])
-	    .complexFilter([
-	    {
-		filter: 'drawtext',
-		options: {
-		fontfile:'DejaVuSans.ttf' ,
-	 	text: txtAll[i],
-		fontsize: 14,
-		fontcolor: 'black',
-		x: '(w-tw)/2',
-		y: '(h/PHI)+th',
-	    	},
-	    }])
-		.addOption('-strict -2')
-		.output(segFiles[i])
-		.on('end', function() {
-			console.log('File has been segmented succesfully');
-			count += 1;
-			if(count == ssAll.length){
-				Merge();
-			}
-		 })
-		 .on('error', function(err, stdout, stderr) {
-		      console.log("ffmpeg stderr:\n" + stderr);
-		 }).run();
-	}
-}
-
-
-
-function Merge(){
-    var fluent_ffmpeg = require("fluent-ffmpeg");
-    var mergedVideo = fluent_ffmpeg();
-
-    segFiles.forEach(function(videoName){
-        mergedVideo = mergedVideo.addInput(videoName)
-        mergedVideo = mergedVideo.addOption('-strict -2')
-    });
-
-    mergedVideo.mergeToFile('Video/VideoSummary.mp4' )
-    .on('error', function(err, stdout, stderr) {
-        console.log("ffmpeg stderr:\n" + stderr);
-	})
-    .on('end', function() {
-        console.log('Merge finished!');
-    });
-}
  
 io.sockets.on('connection', function (socket) {
     socket.on('Start', function (data) { //data contains the variables that we passed through in the html file
@@ -148,7 +73,85 @@ io.sockets.on('connection', function (socket) {
  socket.on('ffmpeg', function (data) { //data contains the variables that we passed through in the html file
         var string = data['Data'];
  	inputFile = data['Name'];
-PrepareString(Segmentation, Merge, string);
+	function PrepareString(Segmentation, Merge, string){
+
+	    var seg_cnt = 0;
+	    while(string.length != 0){
+
+		segFiles.push("Video/segment" + seg_cnt + ".mp4"); 
+		ssAll.push(string.substring(0, string.indexOf('-to') - 1 ));
+		toAll.push(string.substring(string.indexOf('-to'), string.indexOf('-txt') -1 ));
+		txtAll.push(string.substring(string.indexOf('-txt') + 5, string.indexOf(';') || string.length ));
+	
+		var remove_string = ssAll[seg_cnt] + ' ' + toAll[seg_cnt] + ' ' + '-txt ' + txtAll[seg_cnt] + ';'
+		string = string.replace(remove_string,'');
+		seg_cnt += 1;
+	
+	    }
+	   Segmentation(Merge);
+	}
+
+
+	function Segmentation(Merge){
+	    console.log(segFiles);
+	    console.log(ssAll);
+	    console.log(toAll);
+	    console.log(txtAll);
+
+	    for (var i in ssAll) {
+
+		var proc = ffmpeg('Video/'+inputFile)
+		    .addOption(ssAll[i])
+		    .addOption(toAll[i])
+		    .complexFilter([
+		    {
+			filter: 'drawtext',
+			options: {
+			fontfile:'DejaVuSans.ttf' ,
+		 	text: txtAll[i],
+			fontsize: 14,
+			fontcolor: 'black',
+			x: '(w-tw)/2',
+			y: '(h/PHI)+th',
+		    	},
+		    }])
+			.addOption('-strict -2')
+			.output(segFiles[i])
+			.on('end', function() {
+				console.log('File has been segmented succesfully');
+				count += 1;
+				if(count == ssAll.length){
+					Merge();
+				}
+			 })
+			 .on('error', function(err, stdout, stderr) {
+			      console.log("ffmpeg stderr:\n" + stderr);
+			 }).run();
+		}
+	}
+
+
+
+	function Merge(){
+	    var fluent_ffmpeg = require("fluent-ffmpeg");
+	    var mergedVideo = fluent_ffmpeg();
+
+	    segFiles.forEach(function(videoName){
+		mergedVideo = mergedVideo.addInput(videoName)
+		mergedVideo = mergedVideo.addOption('-strict -2')
+	    });
+
+	    mergedVideo.mergeToFile(outFile)
+	    .on('error', function(err, stdout, stderr) {
+		console.log("ffmpeg stderr:\n" + stderr);
+		})
+	    .on('end', function() {
+		console.log('Merge finished!');
+		socket.emit('DownloadSummaryVideo', { });
+	    });
+	}
+
+	PrepareString(Segmentation, Merge, string);
 
     });
     
