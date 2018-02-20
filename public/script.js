@@ -91,6 +91,10 @@
 	// used to collect and show segments
 	var container;
 	
+	// used to avoid painting unloaded images. Otherwise, a blank canvas 
+	// is the result of painting an unloaded image.
+	var is_loaded = true;
+	
 	/*
 	 *******************************************************************
 	 * Initialization
@@ -112,8 +116,8 @@
 		
         //initialize events
 		canvas.addEventListener("click", saveFrame, false);
-		time_slider.addEventListener("change", updateFrame, false);
-		time_slider.addEventListener("input", updateFrame, false);
+		time_slider.addEventListener("change", UpdateFrame, false);
+		time_slider.addEventListener("input", UpdateFrame, false);
 		
 		document.getElementById('files').addEventListener('change', FileChosen);
 		document.getElementById('UploadButton').addEventListener('click', StartUpload); 
@@ -235,7 +239,7 @@
 		
 		// shows additional information in case of an error
 		video.addEventListener("error", function(e) {
-			alter("An error has occured.");
+			alter("An error has occurred.");
 		},
 		false);
 		
@@ -299,8 +303,9 @@
 	
 	// Takes percentage value of the time slider, converts it into corresponding 
 	// time value of the video and initiates drawing of the respective frame.
-	function updateFrame() {
+	function UpdateFrame() {
 		var value = time_slider.value;
+		console.log("change");
 		
 		if (isNull(video)) {
 			return;
@@ -331,24 +336,30 @@
     // from "saved_frames" collection.
     function saveFrame() {
 		
-		if(isUndefined(actual_frame)) {
+		// blocks operation if image of previous frame did not 
+		// complete loading yet.
+		if(isUndefined(actual_frame) || !is_loaded) {
 			return;
 		}
+		is_loaded = false;
 		
 		var img = new Image();
 		img.src = actual_frame.canvas.toDataURL();
-		var frame = new Frame(actual_frame.second, null, false, img);
-		saved_frames.push(frame);
-		if (saved_frames.length > 0 && saved_frames.length % 2 == 0) {
-			var frame1 = saved_frames.shift();
-			var frame2 = saved_frames.shift();
-			var first = frame1.older(frame2);
-			var second = frame1.younger(frame2);
-			var segment = new Segment(first, second);
-			segments.push(segment);
-			segment.id = segment_id++;
-			repaintSegments();
+		img.onload = function() {
+			var frame = new Frame(actual_frame.second, null, false, this);
+			saved_frames.push(frame);
+			if (saved_frames.length > 0 && saved_frames.length % 2 == 0) {
+				var frame1 = saved_frames.shift();
+				var frame2 = saved_frames.shift();
+				var segment = new Segment(frame1.older(frame2), frame1.younger(frame2));
+				segments.push(segment);
+				segment.id = segment_id++;
+				repaintSegments();
+			}
+			// enables grabbing next frame
+			is_loaded = true;
 		}
+		
 	}
 	
 	/*
