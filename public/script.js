@@ -180,8 +180,7 @@
 			var result = combineSegments();
                         console.log(result);
 			// send result to server!
-			var font = getDefaultFontLocation();
- 			socket.emit('ffmpeg', { 'Name' : SelectedFile.name, 'Data' : result, 'Font' : font });
+ 			socket.emit('ffmpeg', { 'Name' : SelectedFile.name, 'Data' : result });
                         //segments = [];
 		},
 		false);
@@ -413,31 +412,6 @@
 	 * Helper functions
 	 *******************************************************************
 	 */
-	
-	// Returns the font location depending on the underlying system. 
-	// The Following code is inspired by http://www.javascripter.net/faq/operatin.htm 
-	// and is used as font for ffmpeg "drawtext" filter.
-	function getDefaultFontLocation() {
-		var font_dir = '/Windows/Fonts/arial.ttf';
-		
-		if (isNull(navigator) || isUndefined(navigator) || isNull(navigator.appVersion)) {
-			return font_dir;
-		}
-		
-		if (navigator.appVersion.indexOf("Win") != -1) {
-			// OS => Windows
-			font_dir = '/Windows/Fonts/arial.ttf';
-		}
-		else if (navigator.appVersion.indexOf("Mac") != -1) {
-			// OS => Mac
-			font_dir = '/Library/Fonts/Arial.ttf'
-		}
-		else {
-			// OS => Linux
-			font_dir = '/usr/share/fonts/truetype/DroidSans.ttf';
-		}
-		return font_dir;
-	}
 	
 	// Returns the next available id for a newly created segment. 
 	// Also performs reuse of already deleted ids.

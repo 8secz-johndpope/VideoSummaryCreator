@@ -3,7 +3,12 @@ var ffmpeg = require('fluent-ffmpeg');
 var outFile = 'public/VideoSummary.mp4';
 var Files = {};
 var inputFile;
-var fontDir;
+// Windows
+var fontDir = '/Windows/Fonts/arial.ttf';
+// Mac
+// var fontDir = '/Library/Fonts/Arial.ttf'
+// Linux
+// var fontDir = '/usr/share/fonts/truetype/DroidSans.ttf';
 var express = require('express');
 var app = express();
 var server = require('http').createServer(app); 
@@ -74,7 +79,6 @@ io.sockets.on('connection', function (socket) {
  socket.on('ffmpeg', function (data) { //data contains the variables that we passed through in the html file
         var string = data['Data'];
 		inputFile = data['Name'];
-		fontDir = data['Font'];
 	function PrepareString(Segmentation, Merge, string){
 
 	    var seg_cnt = 0;
