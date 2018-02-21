@@ -3,6 +3,7 @@ var ffmpeg = require('fluent-ffmpeg');
 var outFile = 'public/VideoSummary.mp4';
 var Files = {};
 var inputFile;
+var fontDir;
 var express = require('express');
 var app = express();
 var server = require('http').createServer(app); 
@@ -72,7 +73,8 @@ io.sockets.on('connection', function (socket) {
 
  socket.on('ffmpeg', function (data) { //data contains the variables that we passed through in the html file
         var string = data['Data'];
- 	inputFile = data['Name'];
+		inputFile = data['Name'];
+		fontDir = data['Font'];
 	function PrepareString(Segmentation, Merge, string){
 
 	    var seg_cnt = 0;
@@ -91,13 +93,12 @@ io.sockets.on('connection', function (socket) {
 	   Segmentation(Merge);
 	}
 
-
 	function Segmentation(Merge){
 	    console.log(segFiles);
 	    console.log(ssAll);
 	    console.log(toAll);
 	    console.log(txtAll);
-
+		
 	    for (var i in ssAll) {
 
 		var proc = ffmpeg('Video/'+inputFile)
@@ -107,7 +108,7 @@ io.sockets.on('connection', function (socket) {
 		    {
 			filter: 'drawtext',
 			options: {
-			fontfile:'DejaVuSans.ttf' ,
+			fontfile: fontDir,
 		 	text: txtAll[i],
 			fontsize: 14,
 			fontcolor: 'black',
@@ -129,8 +130,6 @@ io.sockets.on('connection', function (socket) {
 			 }).run();
 		}
 	}
-
-
 
 	function Merge(){
 	    var fluent_ffmpeg = require("fluent-ffmpeg");

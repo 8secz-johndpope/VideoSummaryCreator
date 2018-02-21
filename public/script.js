@@ -69,6 +69,14 @@
     var socket = io.connect('http://localhost:8080');
     var Path = "http://localhost:8080/VideoSummary.mp4";
 
+	// defines an upper limit for segments.
+	// this is necessary, because each segment is assigned an id (see segment_id)
+	// in order to interact with them. This variable is used to avoid an 
+	// overflow of segment_id.
+	var max_number_of_segments = 4;
+	
+	// used to store reusable segment ids temporarily
+	var available_ids = [];
 	
 	// used to identify segments -> every segment is assigned such an id
 	var segment_id = 0;
@@ -116,6 +124,7 @@
 		
         //initialize events
 		canvas.addEventListener("click", saveFrame, false);
+		canvas.addEventListener("mousemove", mouseMove, false);
 		time_slider.addEventListener("change", UpdateFrame, false);
 		time_slider.addEventListener("input", UpdateFrame, false);
 		
@@ -171,7 +180,8 @@
 			var result = combineSegments();
                         console.log(result);
 			// send result to server!
- 			socket.emit('ffmpeg', { 'Name' : SelectedFile.name, 'Data' : result });
+			var font = getDefaultFontLocation();
+ 			socket.emit('ffmpeg', { 'Name' : SelectedFile.name, 'Data' : result, 'Font' : font });
                         //segments = [];
 		},
 		false);
@@ -346,15 +356,35 @@
 		return object === null;
 	}
 
+	function mouseMove() {
+		if (isNull(canvas) || isUndefined(canvas)) {
+			return;
+		}
+		
+		if (IsCreationOfSegmentsAllowed()) {
+			canvas.style.cursor = "pointer";
+		} else {
+			canvas.style.cursor = "not-allowed";
+		}
+	}
+	
+	function IsCreationOfSegmentsAllowed() {
+		return !isNull(segments) && segments.length < max_number_of_segments && is_loaded;
+	}
+	
     // "Grabs" the visible frame and adds it to "saved_frames" collection. 
     // If "saved_frames" contains at least two frames, a new segment is created 
     // and saved. After creation of a segment, its frames are being removed 
     // from "saved_frames" collection.
     function saveFrame() {
 		
+		if(isUndefined(actual_frame)) {
+			return;
+		}
 		// blocks operation if image of previous frame did not 
 		// complete loading yet.
-		if(isUndefined(actual_frame) || !is_loaded) {
+		var ret = IsCreationOfSegmentsAllowed();
+		if (!ret) {
 			return;
 		}
 		is_loaded = false;
@@ -369,7 +399,7 @@
 				var frame2 = saved_frames.shift();
 				var segment = new Segment(frame1.older(frame2), frame1.younger(frame2));
 				segments.push(segment);
-				segment.id = segment_id++;
+				segment.id = getNextSegmentId();
 				repaintSegments();
 			}
 			// enables grabbing next frame
@@ -383,6 +413,40 @@
 	 * Helper functions
 	 *******************************************************************
 	 */
+	
+	// Returns the font location depending on the underlying system. 
+	// The Following code is inspired by http://www.javascripter.net/faq/operatin.htm 
+	// and is used as font for ffmpeg "drawtext" filter.
+	function getDefaultFontLocation() {
+		var font_dir = '/Windows/Fonts/arial.ttf';
+		
+		if (isNull(navigator) || isUndefined(navigator) || isNull(navigator.appVersion)) {
+			return font_dir;
+		}
+		
+		if (navigator.appVersion.indexOf("Win") != -1) {
+			// OS => Windows
+			font_dir = '/Windows/Fonts/arial.ttf';
+		}
+		else if (navigator.appVersion.indexOf("Mac") != -1) {
+			// OS => Mac
+			font_dir = '/Library/Fonts/Arial.ttf'
+		}
+		else {
+			// OS => Linux
+			font_dir = '/usr/share/fonts/truetype/DroidSans.ttf';
+		}
+		return font_dir;
+	}
+	
+	// Returns the next available id for a newly created segment. 
+	// Also performs reuse of already deleted ids.
+	function getNextSegmentId() {
+		if (available_ids.length == 0) {
+			return ++segment_id;
+		}
+		return available_ids.shift();
+	}
 	 
 	// Returns the segment having id equal to parameter 
 	// id or null, if no such segment exists.
@@ -497,6 +561,7 @@
 			// Find and remove item from an array
 			if(index_se >= 0 && index_se < segments.length) {
 				segments.splice(index_se, 1);
+				available_ids.push(se.id);
 				removeSegment(se);
 				repaintSegments();
 			}
@@ -556,4 +621,3 @@
 		}
 		return result;
 	}
-	
