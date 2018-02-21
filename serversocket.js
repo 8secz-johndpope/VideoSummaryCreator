@@ -55,22 +55,28 @@ io.sockets.on('connection', function (socket) {
         }
         var Place = 0;
         try{
-            var Stat = fs.statSync('Temp/' +  Name);
-            if(Stat.isFile())
+            if(fs.existsSync('Temp/' + Name))
             {
-                //Files[Name]['Downloaded'] = Stat.size;
-                //Place = Stat.size / 524288;
                 fs.unlinkSync('Temp/' + Name);
-                console.log("temp file deleted");
             }
-            var videoStat = fs.statSync('Video/' + Name);
-            if(videoStat.isFile())
+            if(fs.existsSync('Video/' + Name))
             {
-                fs.unlinkSync('Video/' + Name);    
-                console.log("video file deleted");
+                fs.unlinkSync('Video/' + Name);
+            }
+            var bAllSegmentsDeleted = false;
+            var counter = 0;
+            while(bAllSegmentsDeleted == false) {
+                if(fs.existsSync('Video/segment' + counter + '.mp4')) {
+                    fs.unlinkSync('Video/segment' + counter + '.mp4');
+                } else {
+                    bAllSegmentsDeleted = true;
+                }
+                counter++;    
             }
         }
-        catch(er){} //It's a New File
+        catch(er){
+            console.log(er);
+        } //It's a New File
         fs.open("Temp/" + Name, "a", 0755, function(err, fd){
             if(err)
             {
