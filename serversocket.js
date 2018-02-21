@@ -53,8 +53,16 @@ io.sockets.on('connection', function (socket) {
             var Stat = fs.statSync('Temp/' +  Name);
             if(Stat.isFile())
             {
-                Files[Name]['Downloaded'] = Stat.size;
-                Place = Stat.size / 524288;
+                //Files[Name]['Downloaded'] = Stat.size;
+                //Place = Stat.size / 524288;
+                fs.unlinkSync('Temp/' + Name);
+                console.log("temp file deleted");
+            }
+            var videoStat = fs.statSync('Video/' + Name);
+            if(videoStat.isFile())
+            {
+                fs.unlinkSync('Video/' + Name);    
+                console.log("video file deleted");
             }
         }
         catch(er){} //It's a New File
@@ -163,14 +171,19 @@ io.sockets.on('connection', function (socket) {
             fs.write(Files[Name]['Handler'], Files[Name]['Data'], null, 'Binary', function(err, Writen){
                 var inp = fs.createReadStream("Temp/" + Name);
                 var out = fs.createWriteStream("Video/" + Name);
-                inp.pipe(out);
                 inp.on('end', function(){
+                    inp.destroy();
+                });
+                out.on('end', function() {
+                    out.destroy();
+                });
+                inp.on('close', function() {
+                    fs.close(Files[Name]['Handler'], function(){});
                     fs.unlink("Temp/" + Name, function () { //This Deletes The Temporary File
-                        exec("ffmpeg -i Video/" + Name  + " -ss 01:30 -r 1 -an -vframes 1 -f mjpeg Video/" + Name  + ".jpg", function(err){
-                            socket.emit('Done', {'Image' : 'Video/' + Name + '.jpg'});
-                        });
+                        socket.emit('Done', {'Video' : 'Video/' + Name + '.mp4'});
                     });
                 });
+                inp.pipe(out);
             });
         }
         else if(Files[Name]['Data'].length > 10485760){ //If the Data Buffer reaches 10MB
