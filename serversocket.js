@@ -164,6 +164,11 @@ io.sockets.on('connection', function (socket) {
 		})
 	    .on('end', function() {
 		console.log('Merge finished!');
+		count = 0;
+		ssAll = [];
+		toAll = [];
+		txtAll = [];
+		segFiles = []
 		socket.emit('DownloadSummaryVideo', { });
 	    });
 	}

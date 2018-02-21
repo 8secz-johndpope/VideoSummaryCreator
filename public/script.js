@@ -181,7 +181,7 @@
                         console.log(result);
 			// send result to server!
  			socket.emit('ffmpeg', { 'Name' : SelectedFile.name, 'Data' : result });
-                        //segments = [];
+                        segments = [];
 		},
 		false);
 		
