@@ -48,6 +48,13 @@
 			   ' -txt ' + this.description + ';';
 	}
 	
+	// Returns true if segment has duration of 0 s.
+	Segment.prototype.isEmpty = function() {
+		return !isNull(this.startFrame) && 
+			   !isNull(this.endFrame) && 
+			   this.startFrame.second == this.endFrame.second;
+	}
+	
 	/*
 	 *******************************************************************
 	 * Attributes
@@ -65,7 +72,7 @@
 	// this is necessary, because each segment is assigned an id (see segment_id)
 	// in order to interact with them. This variable is used to avoid an 
 	// overflow of segment_id.
-	var max_number_of_segments = 4;
+	var max_number_of_segments = 100;
 	
 	// used to store reusable segment ids temporarily
 	var available_ids = [];
@@ -179,16 +186,28 @@
 		function() {
 			updateDescriptions();
 			var result = combineSegments();
-                        console.log(result);
+			console.log(result);
 			// send result to server!
  			socket.emit('ffmpeg', { 'Name' : SelectedFile.name, 'Data' : result });
-                        segments = [];
+			ResetSegments();
 		},
 		false);
 		
 		// initialize player
 		initPlayer();
 	
+	}
+	
+	// removes all segments.
+	function ResetSegments() {
+		// remove the visual segments
+		for (var x = 0; x < segments.length; x++) {
+			removeSegment(segments[x]);
+		}
+		// remove segments
+		segments = [];
+		segment_id = 0;
+		available_ids = [];
 	}
 
     function FileChosen(evnt) 
@@ -594,6 +613,9 @@
 	function combineSegments() {
 		var result = '';
 		for (var i = 0; i < segments.length; i++) {
+			if (segments[i].isEmpty()) {
+				continue;
+			}
 			result += segments[i].asText();
 		}
 		return result;
