@@ -307,9 +307,10 @@
 	// If frame.reset is true, the surface of the canvas is being cleared.
 	function drawFrameOnCanvas(frame) {
 	
-		var canvas = frame.canvas;
 		var reset = frame.reset;
 	
+        canvas.height = video.videoHeight;
+        canvas.width = video.videoWidth;
 		// retrieve context for drawing
 		var context = canvas.getContext("2d");
 				
