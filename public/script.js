@@ -29,16 +29,8 @@
 	}
 	
 	// Returns a textual representation of a frame.
-	Frame.prototype.asText = function() {
-		var h = Math.floor(this.second / 3600);
-		var m = Math.floor(this.second % 3600 / 60);
-		var s = Math.floor(this.second % 3600 % 60);
-
-		var hms = h > 9 ? "" + h + ":" : "0" + h + ":";
-		hms += m > 9 ? "" + m + ":" : "0" + m + ":";
-		hms += s > 9 ? "" + s : "0" + s;
-				
-		return hms;
+	Frame.prototype.asText = function() {	
+		return secondsToTimeString(this.second);
 	}
 	
 	// Represents a segment that contains two frames
@@ -92,6 +84,8 @@
 	var canvas;
 	// range slider used for switching between frames
 	var time_slider;
+    var label_CurrenFrame;
+    var label_VideoLength;
 	// switch to frame corresponding to current time - 1 s
 	var previous_frame;
 	// switch to frame corresponding to current time + 1 s
@@ -117,6 +111,8 @@
 		video = document.getElementById("video1");
 		canvas = document.getElementById("canvas");
 		time_slider = document.getElementById("time_slider");
+        label_CurrenFrame = document.getElementById("currentFrameTime");
+        label_VideoLength = document.getElementById("videoLength");
 		previous_frame = document.getElementById("previousFrame");
 		next_frame = document.getElementById("nextFrame");
 		container = document.getElementById("container");
@@ -131,6 +127,11 @@
 		document.getElementById('files').addEventListener('change', FileChosen);
 		document.getElementById('UploadButton').addEventListener('click', StartUpload); 
 		
+        video.addEventListener('loadeddata', function () {
+            label_CurrenFrame.innerHTML = secondsToTimeString(video.currentTime);
+            label_VideoLength.innerHTML = secondsToTimeString(video.duration);
+        });
+        
 		previous_frame.addEventListener('click', 
 		function() {
 			if (actual_frame === null) {
@@ -345,6 +346,7 @@
 		
 		var second = Math.floor(value * video.duration / 100);
 		actual_frame = new Frame(second, canvas, false, null);
+        label_CurrenFrame.innerHTML = secondsToTimeString(second);
 		drawFrame(actual_frame);
 	}
 	
@@ -596,3 +598,15 @@
 		}
 		return result;
 	}
+
+    function secondsToTimeString(seconds) {
+        var h = Math.floor(seconds / 3600);
+		var m = Math.floor(seconds % 3600 / 60);
+		var s = Math.floor(seconds % 3600 % 60);
+
+		var hms = h > 9 ? "" + h + ":" : "0" + h + ":";
+		hms += m > 9 ? "" + m + ":" : "0" + m + ":";
+		hms += s > 9 ? "" + s : "0" + s;
+				
+		return hms;
+    }
