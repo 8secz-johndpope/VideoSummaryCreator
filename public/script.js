@@ -99,6 +99,8 @@
 	var next_frame;
 	// used to collect and show segments
 	var container;
+	// submit button
+	var create_sum;
 	
 	// used to avoid painting unloaded images. Otherwise, a blank canvas 
 	// is the result of painting an unloaded image.
@@ -126,6 +128,7 @@
 		previous_frame = document.getElementById("previousFrame");
 		next_frame = document.getElementById("nextFrame");
 		container = document.getElementById("container");
+		create_sum = document.getElementById("submit");
 		
                 //initialize events
 		canvas.addEventListener("click", saveFrame, false);
@@ -322,6 +325,7 @@
 			time_slider.disabled = false;
 			previous_frame.disabled = false;
 			next_frame.disabled = false;
+			create_sum.disabled = false;
 		},
 		false);
 		
