@@ -11,4 +11,4 @@
 6) browser öffnen: localhost:8080
 7) es sollte index.html angezeigt werden.
 
-PS: sollte es die Verzeichnisse "temp" und "Video" im projektverzeichnis noch nicht geben, bitte anlegen!
+PS: sollte es die Verzeichnisse "Temp" und "Video" im projektverzeichnis noch nicht geben, bitte anlegen!

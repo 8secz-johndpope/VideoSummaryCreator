@@ -90,65 +90,78 @@ io.sockets.on('connection', function (socket) {
         });
     });
 
- socket.on('ffmpeg', function (data) { //data contains the variables that we passed through in the html file
-        var string = data['Data'];
-		inputFile = data['Name'];
-	function PrepareString(Segmentation, Merge, string){
+    // parses the string and stores the data in arrays (start/end time of segment, name, description) for further use
+    function PrepareString(Segmentation, Merge, string){
 
-	    var seg_cnt = 0;
-	    while(string.length != 0){
+        var seg_cnt = 0;
+	while(string.length != 0){
 
-		segFiles.push("Video/segment" + seg_cnt + ".mp4"); 
-		ssAll.push(string.substring(0, string.indexOf('-to') - 1 ));
-		toAll.push(string.substring(string.indexOf('-to'), string.indexOf('-txt') -1 ));
-		txtAll.push(string.substring(string.indexOf('-txt') + 5, string.indexOf(';') || string.length ));
+	    segFiles.push("Video/segment" + seg_cnt + ".mp4"); 
+	    ssAll.push(string.substring(0, string.indexOf('-to') - 1 ));
+	    toAll.push(string.substring(string.indexOf('-to'), string.indexOf('-txt') -1 ));
+	    txtAll.push(string.substring(string.indexOf('-txt') + 5, string.indexOf(';') || string.length ));
 	
-		var remove_string = ssAll[seg_cnt] + ' ' + toAll[seg_cnt] + ' ' + '-txt ' + txtAll[seg_cnt] + ';'
-		string = string.replace(remove_string,'');
-		seg_cnt += 1;
+	    var remove_string = ssAll[seg_cnt] + ' ' + toAll[seg_cnt] + ' ' + '-txt ' + txtAll[seg_cnt] + ';'
+	    string = string.replace(remove_string,'');
+	    seg_cnt += 1;
 	
-	    }
-	   Segmentation(Merge);
 	}
+        Segmentation(Merge);
+     }
 
-	function Segmentation(Merge){
-	    console.log(segFiles);
-	    console.log(ssAll);
-	    console.log(toAll);
-	    console.log(txtAll);
+     // here fluent-ffmpeg is used to create each single segment regarding the data of the user input
+     function Segmentation(Merge){
+        console.log(segFiles);
+	console.log(ssAll);
+        console.log(toAll);
+	console.log(txtAll);
 		
-	    for (var i in ssAll) {
+        for (var i in ssAll) {
 
-		var proc = ffmpeg('Video/'+inputFile)
-		    .addOption(ssAll[i])
-		    .addOption(toAll[i])
-		    .complexFilter([
-		    {
-			filter: 'drawtext',
-			options: {
-			fontfile: fontDir,
-		 	text: txtAll[i],
-			fontsize: 14,
-			fontcolor: 'black',
-			x: '(w-tw)/2',
-			y: '(h/PHI)+th',
-		    	},
-		    }])
-			.addOption('-strict -2')
-			.output(segFiles[i])
-			.on('end', function() {
-				console.log('File has been segmented succesfully');
-				count += 1;
-				if(count == ssAll.length){
-					Merge();
-				}
-			 })
-			 .on('error', function(err, stdout, stderr) {
-			      console.log("ffmpeg stderr:\n" + stderr);
-			 }).run();
-		}
-	}
+            var proc = ffmpeg('Video/'+inputFile)
+	        .addOption(ssAll[i])
+		.addOption(toAll[i])
+		.complexFilter([
+		{
+		    filter: 'drawtext',
+		    options: {
+		    fontfile: fontDir,
+		    text: txtAll[i],
+		    fontsize: 18,
+		    box: 1,
+		    boxcolor:'white@0.8',
+		    fontcolor: 'black',
+		    x: '(w-tw)/2',
+		    y: '(h/PHI)+th',
+		 }, }])
+		.addOption('-strict -2')
+		.output(segFiles[i])
+		
+                .on('end', function() {
+		    console.log('File has been segmented successfully');
+		    count += 1;
+                    // used to refresh the progressbar if segment was created
+		    socket.emit('ProgressBarSummary', {'SegmentCounter' : count });
+		    if(count == ssAll.length){
+		        Merge();
+		    }
+		})
+		.on('error', function(err, stdout, stderr) {
+                    // in case an error happened
+		    console.log("ffmpeg stderr:\n" + stderr);
+	            socket.emit('ProgressBarSummary', {'SegmentCounter' : -1 });
+		}).run();
+	  }
+     }
 
+
+
+
+    socket.on('ffmpeg', function (data) {
+        var string = data['Data'];
+	inputFile = data['Name'];
+	
+        // merge the segments to the summary video
 	function Merge(){
 	    var fluent_ffmpeg = require("fluent-ffmpeg");
 	    var mergedVideo = fluent_ffmpeg();
@@ -159,17 +172,22 @@ io.sockets.on('connection', function (socket) {
 	    });
 
 	    mergedVideo.mergeToFile(outFile)
+            // in case an error happened
 	    .on('error', function(err, stdout, stderr) {
 		console.log("ffmpeg stderr:\n" + stderr);
+		socket.emit('ProgressBarSummary', {'SegmentCounter' : -1 });
 		})
+
+            // refresh the progressbar if merge was successful
 	    .on('end', function() {
 		console.log('Merge finished!');
+		socket.emit('ProgressBarSummary', {'SegmentCounter' : count + 1 });
 		count = 0;
 		ssAll = [];
 		toAll = [];
 		txtAll = [];
 		segFiles = []
-		socket.emit('DownloadSummaryVideo', { });
+		socket.emit('DownloadSummaryVideo', {});
 	    });
 	}
 

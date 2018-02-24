@@ -64,9 +64,9 @@
 	var reader;
 	var video;
 
-    var SelectedFile;
-    var socket = io.connect('http://localhost:8080');
-    var Path = "http://localhost:8080/VideoSummary.mp4";
+        var SelectedFile;
+        var socket = io.connect('http://localhost:8080');
+        var Path = "http://localhost:8080/VideoSummary.mp4";
 
 	// defines an upper limit for segments.
 	// this is necessary, because each segment is assigned an id (see segment_id)
@@ -91,8 +91,8 @@
 	var canvas;
 	// range slider used for switching between frames
 	var time_slider;
-    var label_CurrenFrame;
-    var label_VideoLength;
+        var label_CurrenFrame;
+        var label_VideoLength;
 	// switch to frame corresponding to current time - 1 s
 	var previous_frame;
 	// switch to frame corresponding to current time + 1 s
@@ -103,6 +103,9 @@
 	// used to avoid painting unloaded images. Otherwise, a blank canvas 
 	// is the result of painting an unloaded image.
 	var is_loaded = true;
+
+        // amount of actually used segments (needed for progress bar)
+        var totalSegments = 0;
 	
 	/*
 	 *******************************************************************
@@ -112,20 +115,19 @@
 	
 	// Initializes main variables and functions
 	function init() 
-    {
+        {
 		
 		// initialize variables
 		video = document.getElementById("video1");
 		canvas = document.getElementById("canvas");
 		time_slider = document.getElementById("time_slider");
-        label_CurrenFrame = document.getElementById("currentFrameTime");
-        label_VideoLength = document.getElementById("videoLength");
+                label_CurrenFrame = document.getElementById("currentFrameTime");
+                label_VideoLength = document.getElementById("videoLength");
 		previous_frame = document.getElementById("previousFrame");
 		next_frame = document.getElementById("nextFrame");
 		container = document.getElementById("container");
-		container = document.getElementById("container");
 		
-        //initialize events
+                //initialize events
 		canvas.addEventListener("click", saveFrame, false);
 		canvas.addEventListener("mousemove", mouseMove, false);
 		time_slider.addEventListener("change", UpdateFrame, false);
@@ -134,10 +136,10 @@
 		document.getElementById('files').addEventListener('change', FileChosen);
 		document.getElementById('UploadButton').addEventListener('click', StartUpload); 
 		
-        video.addEventListener('loadeddata', function () {
-            label_CurrenFrame.innerHTML = secondsToTimeString(video.currentTime);
-            label_VideoLength.innerHTML = secondsToTimeString(video.duration);
-        });
+                video.addEventListener('loadeddata', function () {
+                label_CurrenFrame.innerHTML = secondsToTimeString(video.currentTime);
+                label_VideoLength.innerHTML = secondsToTimeString(video.duration);
+         });
         
 		previous_frame.addEventListener('click', 
 		function() {
@@ -189,6 +191,8 @@
 			console.log(result);
 			// send result to server!
  			socket.emit('ffmpeg', { 'Name' : SelectedFile.name, 'Data' : result });
+			document.getElementById("create_progress").innerHTML='Creating summary... 0%';
+                        
 			ResetSegments();
 		},
 		false);
@@ -259,21 +263,36 @@
         video.src = SelectedFile.name;
     });
 
+    // Used to refresh the progressbar if a new segment was successfully created or the merge of the segments were finished
+    socket.on('ProgressBarSummary', function (data){
+	var countSegments =  data['SegmentCounter'];
+        if(countSegments == -1){
+            document.getElementById("create_progress").innerHTML = 'Error while creating summary. Please try again';
+	}
+	else{	
+           drawslider(totalSegments + 1, countSegments);
+	}
+    });
+
+
+    // If the summary video was sucessfully created, a new tab opens and the user can download the file
     socket.on('DownloadSummaryVideo', function (data){
 	console.log(Path);
         var win = window.open(Path, '_blank');
  	win.focus();
- 	var element = document.createElement('a');
+ 	
+        var element = document.createElement('a');
     	element.setAttribute('href', Path);
     	element.setAttribute('download', "file.mp4");
 
     	element.setAttribute('target', '_blank');
-   	 element.style.display = 'none';
-   	 document.body.appendChild(element);
+   	element.style.display = 'none';
+   	document.body.appendChild(element);
 
     	element.click();
     	document.body.removeChild(element);
     });
+
 
     function Refresh(){
         location.reload(true);
@@ -351,7 +370,7 @@
 	// time value of the video and initiates drawing of the respective frame.
 	function UpdateFrame() {
 		var value = time_slider.value;
-		console.log("change");
+		//console.log("change");
 		
 		if (isNull(video)) {
 			return;
@@ -612,9 +631,12 @@
 	// of the video.
 	function combineSegments() {
 		var result = '';
+		totalSegments = segments.length;
 		for (var i = 0; i < segments.length; i++) {
 			if (segments[i].isEmpty()) {
+				totalSegments--;
 				continue;
+				
 			}
 			result += segments[i].asText();
 		}
@@ -631,4 +653,13 @@
 		hms += s > 9 ? "" + s : "0" + s;
 				
 		return hms;
+    }
+
+
+    // Function that draws the progressbar
+    // The first parameter is the full width and the second is the actual state
+    function drawslider(totalSeg, countSeg){
+        var create_progress = Math.round((countSeg * 100)/totalSeg);
+        document.getElementById("sliderbar").style.width = create_progress+'%';
+        document.getElementById("create_progress").innerHTML = 'Creating summary...' + create_progress+'%';
     }
